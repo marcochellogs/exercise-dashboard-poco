@@ -43,7 +43,7 @@ app.post('/webhook', (req, res) => {
     console.log(payload.check_run.output.summary)
   }
   // let's respond to the webhook
-  res.send('webhook received!')
+  res.send('default response is 200, webhook received!')
 })
 
 // we need our server to listen on this channel
