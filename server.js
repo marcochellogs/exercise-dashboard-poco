@@ -30,6 +30,8 @@ app.post('/webhook', (req, res) => {
     console.log(payload.sender.login)
     console.log('repository name')
     console.log(payload.repository.name)
+    console.log('you can use this as temporary password')
+    console.log(payload.check_run.id)
   }
   if (payload.action === 'completed' && payload.check_run.name === 'Autograding') {
     // Now that you saved the repository name
