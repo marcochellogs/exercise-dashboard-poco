@@ -1,26 +1,55 @@
 const db = require('../models/index.js');
 
 const exerciseMethods = {
-  updateExercise: async ({ exercise_repository_name, action_name, score, exercise_status }) => {
+  findOrCreateExercise: async (payload) => {
     try {
-      const exercise = await db.Exercise.findOne({ where: { exercise_repository_name } })
-      await exercise.update({ exercise_repository_name, action_name, score, exercise_status });
+      const [exercise] = await db.Exercise.findOrCreate({
+        where: { exercise_repository_name: payload.repository.name },
+        defaults: {
+          exercise_repository_name: payload.repository.name,
+          last_committ: new Date().toISOString(),
+        }
+      });
+      return exercise;
+    } catch (error) {
+      console.log('')
+      console.log('findOrCreateExercise error ', error.parent)
+    }
+  },
+  updateExercise: async (payload) => {
+    try {
+      const exercise = await db.Exercise.findOne({
+        where: { exercise_repository_name: payload.repository.name }
+      })
+      await exercise.update({
+        action_name: payload.check_run.output.title,
+        score: payload.check_run.output.summary,
+        exercise_status: payload.check_run.conclusion
+      });
       return exercise;
     } catch (error) {
       console.log('')
       console.log('updateExercise error ', error)
     }
   },
-  saveExerciseData: async({ username, exercise_repository_name }) => {
+  saveExerciseData: async(payload, user) => {
     try {
       const [exercise] = await db.Exercise.findOrCreate({
-        where: { exercise_repository_name },
+        where: { exercise_repository_name: payload.repository.name },
         defaults: {
-          exercise_name: exercise_repository_name.replace(`-${username}`, ''),
-          username,
-          last_committ: new Date().toISOString()
+          exercise_name: payload.repository.name.replace(`-${payload.sender.login}`, ''),
+          username: payload.sender.login,
+          last_committ: new Date().toISOString(),
+          UserId: user.id
         }
       });
+      if (!exercise.UserId) {
+        await exercise.update({
+          exercise_name: payload.repository.name.replace(`-${payload.sender.login}`, ''),
+          username: payload.sender.login,
+          UserId: user.id
+        })
+      }
       return exercise;
     } catch (error) {
       console.log('')

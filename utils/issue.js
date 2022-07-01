@@ -1,37 +1,71 @@
 const db = require('../models/index.js');
 
 const exerciseMethods = {
-  openIssue: async ({ exercise_repository_name, action_name, score, exercise_status }) => {
+  openIssue: async (payload, exercise) => {
     try {
-      const issue = await db.Issue.create(data)
+      const [issue] = await db.Issue.findOrCreate({
+        where: { issue_url: payload.issue.url },
+        defaults: {
+          issue_url: payload.issue.url,
+          last_committ: new Date().toISOString(),
+          issue_body: payload.issue.body ,
+          issue_title: payload.issue.title,
+          issue_state: payload.issue.state,
+          issue_labels: JSON.stringify(payload.issue.labels.map((e) => e.name)),
+          exercise_repository_name: payload.repository.name,
+          ExerciseId: exercise.id
+        }
+      });
       return issue;
     } catch (error) {
       console.log('')
       console.log('openIssue error ', error)
     }
   },
-  assignIssue: async ({ username, exercise_repository_name, issue_name }) => {
+  assignIssue: async (payload) => {
     try {
       const [issue] = await db.Issue.findOrCreate({
-        where: { exercise_repository_name, issue_url },
+        where: { issue_url: payload.issue.url },
         defaults: {
-          issue_url,
-          username,
-          last_committ: new Date().toISOString()
+          issue_url: payload.issue.url,
+          last_committ: new Date().toISOString(),
+          issue_body: payload.issue.body,
+          issue_title: payload.issue.title,
+          issue_state: payload.issue.state,
+          exercise_repository_name: payload.repository.name
         }
       });
-      return await issue.update({});
+      return await issue.update({ assignee: payload.issue.assignee.login });
     } catch (error) {
       console.log('')
-      console.log('assignIssue error ', error.parent)
+      console.log('assignIssue error ', error)
     }
   },
-  closeIssue: async ({ username, exercise_repository_name }) => {
+  labelIssue: async (payload) => {
+    try {
+      const [issue] = await db.Issue.findOrCreate({
+        where: { issue_url: payload.issue.url },
+        defaults: {
+          issue_url: payload.issue.url,
+          last_committ: new Date().toISOString(),
+          issue_body: payload.issue.body,
+          issue_title: payload.issue.title,
+          issue_state: payload.issue.state,
+          exercise_repository_name: payload.repository.name
+        }
+      });
+      return await issue.update({ issue_labels: JSON.stringify(payload.issue.labels.map((e) => e.name)) });
+    } catch (error) {
+      console.log('')
+      console.log('labelIssue error ', error)
+    }
+  },
+  closeIssue: async (payload) => {
     try {
       const issue = await db.Issue.findOne({
-        where: { exercise_repository_name, issue_url }
+        where: { issue_url: payload.issue.url }
       });
-      return await issue.update({});
+      return await issue.update({ issue_state: payload.issue.state });
     } catch (error) {
       console.log('')
       console.log('closeIssue error ', error.parent)

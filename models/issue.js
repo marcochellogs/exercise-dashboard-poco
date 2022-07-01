@@ -10,21 +10,19 @@ module.exports = (sequelize, DataTypes) => {
      * The `models/index` file will call this method automatically.
      */
     static associate(models) {
-      // define association here
+      this.belongsTo(models.Exercise, { as: 'Exercise' });
     }
   }
   Issue.init({
     exercise_repository_name: DataTypes.STRING,
-    exercise_name: DataTypes.STRING,
     last_committ: DataTypes.DATE,
-    action_name: DataTypes.STRING,
     issue_body: DataTypes.STRING,
-    issue_name: DataTypes.STRING,
     issue_title: DataTypes.STRING,
     issue_url: DataTypes.STRING,
     issue_state: DataTypes.STRING,
     issue_labels: DataTypes.STRING,
-    assignee: DataTypes.STRING
+    assignee: DataTypes.STRING,
+    ExerciseId: DataTypes.INTEGER
   }, {
     sequelize,
     modelName: 'Issue',

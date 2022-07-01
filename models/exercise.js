@@ -10,7 +10,8 @@ module.exports = (sequelize, DataTypes) => {
      * The `models/index` file will call this method automatically.
      */
     static associate(models) {
-      // define association here
+      this.belongsTo(models.User, { as: 'User' });
+      this.hasMany(models.Issue, { as: 'Issues' })
     }
   }
   Exercise.init({
@@ -20,7 +21,8 @@ module.exports = (sequelize, DataTypes) => {
     last_committ: DataTypes.DATE,
     action_name: DataTypes.STRING,
     score: DataTypes.STRING,
-    exercise_status: DataTypes.STRING
+    exercise_status: DataTypes.STRING,
+    UserId: DataTypes.INTEGER
   }, {
     sequelize,
     modelName: 'Exercise',

@@ -5,6 +5,7 @@ const issueMethods = require('./utils/issue.js');
 
 const express = require('express');
 const bodyParser = require("body-parser");
+const db = require('./models/index.js');
 const app = express();
 const port = 3000;
 
@@ -14,48 +15,59 @@ app.use(bodyParser.json());
 app.post('/webhook', async (req, res) => {
   const payload = JSON.parse(req.body.payload)
 
+  // to auth with secret
   //if (!authMethods.verifySecret(req, payload)) { res.status(401).send('unauthorized') }
+
   switch (req.get('X-GitHub-Event')) {
     case 'issues':
       if (payload.action === 'opened'){
-        await issueMethods.createIssue()
+        // associate the issue to the exercise
+        // could the exercise not exist? Yes if they havent pushed, we create a dummy exercise
+        const exercise = await exerciseMethods.findOrCreateExercise(payload)
+        await issueMethods.openIssue(payload, exercise)
+        console.log('')
+        console.log('issue opened')
+        console.log('')
       }
-      if (payload.action === 'assigned') {
-        await issueMethods.assignIssue()
+      if (payload.action === 'assigned' || payload.action === 'unassigned') {
+        const exercise = await exerciseMethods.findOrCreateExercise(payload)
+        await issueMethods.assignIssue(payload, exercise)
+        console.log('')
+        console.log('issue assigned')
+        console.log('')
+      }
+      if (payload.action === 'labeled' || payload.action == 'unlabeled') {
+        const exercise = await exerciseMethods.findOrCreateExercise(payload)
+        await issueMethods.labelIssue(payload, exercise)
+        console.log('')
+        console.log('issue labeled')
+        console.log('')
       }
       if (payload.action === 'closed') {
-        await issueMethods.closeIssue()
+        await issueMethods.closeIssue(payload)
+        console.log('')
+        console.log('issue closed')
+        console.log('')
       }
-
       break;
     case 'check_run':
+      // for the score we only act when the owner commits
       if (!userMethods.checkOwnership(payload)) {
         console.log(`Do nothing, ${payload.sender.login} is not the user`)
         return res.status(200).send('do nothing')
       }
-
       if (payload.action === 'created') {
-        const data = {
-          username: payload.sender.login,
-          exercise_repository_name: payload.repository.name,
-          temp_password: payload.sender.login
-        }
-        await userMethods.saveUserData(data)
-        await exerciseMethods.saveExerciseData(data)
+        const user = await userMethods.saveUserData(payload)
+        // saves exercise and if exists updates user id and ex name
+        await exerciseMethods.saveExerciseData(payload, user)
 
         console.log('')
         console.log(`repository owner username: ${payload.sender.login}`)
         console.log(`repository name ${payload.repository.name}`)
         console.log('')
       }
-      if (payload.action === 'completed' && payload.check_run.name === 'Autograding') {
-        const data = {
-          exercise_repository_name: payload.repository.name,
-          action_name: payload.check_run.output.title,
-          score: payload.check_run.output.summary,
-          exercise_status: payload.check_run.conclusion
-        }
-        await exerciseMethods.updateExercise(data)
+      if (payload.action === 'completed') {
+        await exerciseMethods.updateExercise(payload)
 
         console.log('')
         console.log(`repo name: ${payload.repository.name}`)
@@ -66,9 +78,6 @@ app.post('/webhook', async (req, res) => {
     default:
     res.send('nothing to do')
   }
-
-
-
   res.send('default response is 200, webhook received!')
 })
 
@@ -80,7 +89,7 @@ app.get('/users', async (req, res) => {
 app.get('/users/:username', async (req, res) => {
   const user = await userMethods.getUserByUsername(req.params.username)
   const exercises = await exerciseMethods.getAllExercisesByUsername(req.params.username)
-
+  // get issues for exercises
   res.send(JSON.stringify({ user, exercises }))
 })
 

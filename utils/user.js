@@ -4,12 +4,12 @@ const userMethods = {
   checkOwnership: (payload) => {
     return payload.repository.name.includes(payload.sender.login)
   },
-  saveUserData: async ({ username, temp_password }) => {
+  saveUserData: async (payload) => {
     try {
       const [user] = await db.User.findOrCreate({
-        where: { username },
+        where: { username: payload.sender.login },
         defaults: {
-          password: temp_password,
+          password: payload.sender.login,
           signUpDate: new Date().toISOString()
         }
       });
@@ -23,7 +23,7 @@ const userMethods = {
     return await db.User.findAll()
   },
   getUserByUsername: async (username) => {
-    return await db.User.findAll({ where: { username } })
+    return await db.User.findOne({ where: { username } })
   }
 }
 
